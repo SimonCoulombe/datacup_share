@@ -1015,7 +1015,11 @@ mydb %>% select_if(function(x) any(is.na(x))) %>%
 NA_mydb %>% glimpse
 
 table(sapply(mydb, class)) # lister le nombre de variable de chaque classe
+
+mydb <- mydb %>% select(-mean_Default_lastCreditRatio_ntile)
+
 write_rds(mydb, path="mydb.rds")
+
 
 #mydb <- read_rds(path="mydb.rds")
 
@@ -1027,24 +1031,22 @@ myformula <- paste0(label_var,  "~", paste0( factor_vars, collapse = " + ") ) %>
 mydb_dummy <-    caret::dummyVars(myformula, data=mydb  , fullRank = TRUE) %>%
    predict(newdata = mydb) %>%
    as_tibble() %>% bind_cols(mydb %>% select(-one_of(factor_vars) ))#- ,ID_CPTE
-
+mydb_dummy<- mydb_dummy %>% select(-ID_CPTE)
 write_rds(mydb_dummy, "mydb_dummy.rds")
 
 
 # Un premier boost, pour rire ----
 
-mydb_dummy<- mydb_dummy %>% select(-ID_CPTE)
-
 feature_vars_dummy <-  
   colnames(mydb_dummy %>% 
-             select(-Default,  -mean_Default_lastCreditRatio_ntile))
+             select(-Default ))
 
 
 # on doit se faire un train test sinon xgboost va overfitter.
 # create 20% test data
 # split the remaining 80% into 72% train and 8% watchlist
 alltrain_dummy <- mydb_dummy  %>% filter(!is.na(Default))
-
+write_rds(alltrain_dummy, "alltrain_dummy.rds")
 
 trainIndex2 <- caret::createDataPartition(
   alltrain_dummy %>% pull(label_var), 
@@ -1053,6 +1055,7 @@ trainIndex2 <- caret::createDataPartition(
 train_dummy <-alltrain_dummy[trainIndex2, ]
 wlist_dummy <-alltrain_dummy[-trainIndex2, ]
 test_dummy <- mydb_dummy %>% filter(is.na(Default))
+write_rds(test_dummy, "test_dummy.rds")
 
 # ensuite on converti en DMatrix, l'input requis par xgboost (noter l'absence de l'offet, on le rajoute juste après)
 alltrain_xgbmatrix <- xgb.DMatrix(
@@ -1117,5 +1120,5 @@ var_importance <- xgb.importance(
   model = booster) %>% tbl_df()
 
 #Il utilise environ 300 variables sur les 2800+ générées
-
+write_csv(var_importance, "var_importance.csv")
 
