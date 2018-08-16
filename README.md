@@ -1,2 +1,4 @@
 # datacup_shared
-This is where I will share my code used for the datacup 2018
+This is the code I used for the desjardins datacup 2018.
+This attained 1st place on public leaderboard and 2nd place on private leaderboard.
+competition website: datacup.ca
